@@ -23,7 +23,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -383,12 +382,6 @@ func (plugin *NvidiaDevicePlugin) Allocate(ctx context.Context, reqs *kubeletdev
 			found := false
 			for _, val := range currentCtr.Env {
 				if strings.Compare(val.Name, "CUDA_DISABLE_CONTROL") == 0 {
-					// if env existed but is set to false or can not be parsed, ignore
-					t, _ := strconv.ParseBool(val.Value)
-					if !t {
-						continue
-					}
-					// only env existed and set to true, we mark it "found"
 					found = true
 					break
 				}
