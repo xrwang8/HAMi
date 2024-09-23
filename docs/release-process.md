@@ -27,3 +27,8 @@ Before releasing the z version, you need to ensure that all changes have been me
 
 
 1. 生成 token --> https://cpina.github.io/push-to-another-repository-docs/setup-using-personal-access-token.html#setup-personal-access-token
+
+
+### known issues
+
+- [] chart tgz cannot be generated
