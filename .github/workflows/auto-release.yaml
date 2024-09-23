@@ -87,8 +87,11 @@ jobs:
     secrets: inherit
 
   generate-release-notes:
-    needs: release-chart
+    needs: [get-tag]
     uses: ./.github/workflows/call-gen-release-notes.yaml
+    with:
+      ref: ${{ needs.get-tag.outputs.tag }}
+      submit: true
     secrets: inherit
     permissions:
       contents: write

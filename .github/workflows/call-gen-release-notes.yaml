@@ -1,15 +1,32 @@
 name: save release notes
 
-on: [workflow_call, workflow_dispatch]
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        required: true
+        type: string
+      submit:
+        required: true
+        type: string
+    outputs:
+      artifact:
+        description: "name of artifact"
+        value: chart_package_artifact
+
+permissions: write-all
+
 jobs:
   save-release-notes-to-file:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         fetch-depth: 0
-        ref: main
+        persist-credentials: false
+        ref: ${{ inputs.ref }}
 
     - name: Create release notes markdown
       run: |
