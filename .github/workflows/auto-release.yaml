@@ -78,9 +78,17 @@ jobs:
     secrets: inherit
 
   release-chart:
-    needs: [build-release-image, get-tag]
-    uses: ./.github/workflows/call-release-chart.yaml
+    needs: [get-tag]
+    # needs: [build-release-image, get-tag]
+    uses: ./.github/workflows/call-release-helm.yaml
     with:
       ref: ${{ needs.get-tag.outputs.tag }}
       submit: true
     secrets: inherit
+
+  generate-release-notes:
+    needs: release-chart
+    uses: ./.github/workflows/call-gen-release-notes.yaml
+    secrets: inherit
+    permissions:
+      contents: write
