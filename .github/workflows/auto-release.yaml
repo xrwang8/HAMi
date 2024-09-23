@@ -78,7 +78,8 @@ jobs:
     secrets: inherit
 
   release-chart:
-    needs: [build-release-image, get-tag]
+    needs: [get-tag]
+    # needs: [build-release-image, get-tag]
     uses: ./.github/workflows/call-release-helm.yaml
     with:
       ref: ${{ needs.get-tag.outputs.tag }}
