@@ -22,10 +22,10 @@ update-versions:
 	sed -i 's/version: "*'$(VERSION_REGEX)'"*/version: "'$$hami_version'"/g' $(VALUES_FILE)
 
 lint: update-versions
-	$(QUIET)helm lint --with-subcharts --values ./hami/values.yaml ./hami
+	helm lint --with-subcharts --values ./hami/values.yaml ./hami
 
 package: lint
-	$(QUIET)helm package ./hami
+	helm package ./hami
 
 clean:
-	$(QUIET)rm -f *.tgz
+	rm -f *.tgz
