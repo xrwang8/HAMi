@@ -93,5 +93,3 @@ jobs:
       ref: ${{ needs.get-tag.outputs.tag }}
       submit: true
     secrets: inherit
-    permissions:
-      contents: write
