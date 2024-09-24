@@ -74,6 +74,10 @@ jobs:
           basePath: # optional, default is .
           submodulePath: libvgpu 
 
+      - name: Lint Dockerfile
+        run: |
+          make lint_dockerfile
+
       - name: Docker Login
         uses: docker/login-action@v3.3.0
         with:
