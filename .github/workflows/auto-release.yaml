@@ -85,6 +85,13 @@ jobs:
       ref: ${{ needs.get-tag.outputs.tag }}
       submit: true
     secrets: inherit
+
+  # generate changelog and update to github releases pages
+  release-notes:
+    needs: [release-chart,release-image]
+    uses: ./.github/workflows/call-release-notes.yaml
+    with:
+      ref: ${{ needs.get-tag.outputs.tag }}
   
   release-website:
     needs: [release-chart,release-image]
