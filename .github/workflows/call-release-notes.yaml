@@ -52,10 +52,14 @@ jobs:
 
         # 3. generate release notes content for new release
         latest_tag=${GITHUB_REF#refs/*/}
-        curl \
+        curl -o result.json \
           -H "Accept: application/vnd.github+json" \
           -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-          https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/${latest_tag} |yq '.body' > docs/overrides/releases/${latest_tag}.md
+          https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/${latest_tag}
+        
+        cat result.json | yq '.body' > docs/overrides/releases/${latest_tag}.md
+
+        rm -rf result.json
 
     - name: Push release notes
       id: push_directory
