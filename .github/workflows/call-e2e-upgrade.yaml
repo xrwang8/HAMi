@@ -9,7 +9,7 @@ on:
 permissions: write-all
 
 jobs:
-  docker-build:
+  upgrade-e2e:
     runs-on: ubuntu-latest
     steps:
       - name: e2e upgrade test
