@@ -97,7 +97,8 @@ jobs:
 
   # generate changelog and update to github releases pages
   release-notes:
-    needs: [release-chart,release-image]
+    # needs: [release-chart,release-image]
+    needs: [release-chart]
     uses: ./.github/workflows/call-release-notes.yaml
     with:
       ref: ${{ needs.get-tag.outputs.tag }}

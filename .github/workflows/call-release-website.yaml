@@ -9,7 +9,7 @@ on:
 permissions: write-all
 
 jobs:
-  docker-build:
+  build-website:
     runs-on: ubuntu-latest
     steps:
       - name: release hami website
