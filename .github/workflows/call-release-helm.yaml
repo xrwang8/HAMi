@@ -142,4 +142,26 @@ jobs:
           user-email: xiaozhang0210@hotmail.com
           commit-message: sync ORIGIN_COMMIT from $GITHUB_REF
           target-branch: ${{ env.MERGE_BRANCH }}
-  
+  # upload the chart package to the release artifact
+  upload_chart_releaes:
+    runs-on: ubuntu-latest
+    needs: [update_githubpage]
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: chart_package_artifact
+          path: charts/
+      - name: upload Release
+        id: upload_release
+        continue-on-error: false
+        uses: ncipollo/release-action@v1.14.0
+        with:
+          artifacts: "charts/*"
+          allowUpdates: true
+          removeArtifacts: true
+          replacesArtifacts: true
+          artifactErrorsFailBuild: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ needs.get_ref.outputs.ref }}
+          name: ${{ needs.get_ref.outputs.ref }}
