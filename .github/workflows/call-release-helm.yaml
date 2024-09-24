@@ -91,14 +91,6 @@ jobs:
           path: tmp/*
           retention-days: 1
           if-no-files-found: error
-      # - name: Run chart-releaser
-      #   uses: helm/chart-releaser-action@v1.6.0
-      #   with:
-      #     charts_dir: charts/
-      #   env:
-      #     CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-      #     CR_RELEASE_NAME_TEMPLATE: "{{ .Version }}"
-
 
   # update /index.yaml in the target branch
   update_githubpage:
@@ -142,4 +134,3 @@ jobs:
           user-email: xiaozhang0210@hotmail.com
           commit-message: sync ORIGIN_COMMIT from $GITHUB_REF
           target-branch: ${{ env.MERGE_BRANCH }}
-  
