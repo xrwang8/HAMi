@@ -152,16 +152,26 @@ jobs:
         with:
           name: chart_package_artifact
           path: charts/
-      - name: upload Release
-        id: upload_release
-        continue-on-error: false
-        uses: ncipollo/release-action@v1.14.0
+      # - name: upload Release
+      #   id: upload_release
+      #   continue-on-error: false
+      #   uses: ncipollo/release-action@v1.14.0
+      #   with:
+      #     artifacts: "charts/*.tgz"
+      #     allowUpdates: true
+      #     removeArtifacts: true
+      #     replacesArtifacts: true
+      #     prerelease: true
+      #     artifactErrorsFailBuild: true
+      #     token: ${{ secrets.GITHUB_TOKEN }}
+      #     tag: ${{ needs.get_ref.outputs.ref }}
+      # generate release notes for the new release branch
+      - name: Generate release notes
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          artifacts: "charts/*"
-          allowUpdates: true
-          removeArtifacts: true
-          replacesArtifacts: true
-          artifactErrorsFailBuild: true
-          token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ needs.get_ref.outputs.ref }}
-          name: ${{ needs.get_ref.outputs.ref }}
+          prerelease: true
+          generate_release_notes: true
+          files: "charts/*.tgz"
