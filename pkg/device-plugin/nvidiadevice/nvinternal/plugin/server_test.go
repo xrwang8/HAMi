@@ -33,6 +33,7 @@
 package plugin
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -40,10 +41,14 @@ import (
 	"testing"
 
 	v1 "github.com/NVIDIA/k8s-device-plugin/api/config/v1"
+	"github.com/Project-HAMi/HAMi/pkg/device"
 	"github.com/Project-HAMi/HAMi/pkg/device-plugin/nvidiadevice/nvinternal/cdi"
 	"github.com/Project-HAMi/HAMi/pkg/device-plugin/nvidiadevice/nvinternal/imex"
 	"github.com/Project-HAMi/HAMi/pkg/device/nvidia"
+	"github.com/Project-HAMi/HAMi/pkg/util"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeletdevicepluginv1beta1 "k8s.io/kubelet/pkg/apis/deviceplugin/v1beta1"
 )
 
@@ -389,6 +394,142 @@ func Test_processMigConfigs(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSelectPreferredDeviceIDsFromAnnotatedDevices(t *testing.T) {
+	plugin := &NvidiaDevicePlugin{}
+	available := []string{
+		"GPU-a-0", "GPU-a-1",
+		"GPU-b-0",
+		"GPU-c-0",
+		"GPU-d-0", "GPU-d-1",
+		"GPU-e-0",
+		"GPU-f-0",
+		"GPU-g-0",
+		"GPU-h-0",
+	}
+	required := []string{"GPU-d-1"}
+	desired := device.ContainerDevices{
+		{UUID: "GPU-a"},
+		{UUID: "GPU-b"},
+		{UUID: "GPU-c"},
+		{UUID: "GPU-d"},
+		{UUID: "GPU-e"},
+		{UUID: "GPU-f"},
+		{UUID: "GPU-g"},
+		{UUID: "GPU-h"},
+	}
+
+	got, err := plugin.selectPreferredDeviceIDsFromAnnotatedDevices(available, required, desired, len(desired))
+	require.NoError(t, err)
+	require.Len(t, got, len(desired))
+	require.Contains(t, got, "GPU-d-1")
+	require.ElementsMatch(t, []string{
+		"GPU-a-0",
+		"GPU-b-0",
+		"GPU-c-0",
+		"GPU-d-1",
+		"GPU-e-0",
+		"GPU-f-0",
+		"GPU-g-0",
+		"GPU-h-0",
+	}, got)
+}
+
+func TestSelectPreferredDeviceIDsFromAnnotatedDevicesErrorsWhenAnnotatedUUIDMissing(t *testing.T) {
+	plugin := &NvidiaDevicePlugin{}
+	available := []string{"GPU-a-0", "GPU-b-0"}
+	desired := device.ContainerDevices{
+		{UUID: "GPU-a"},
+		{UUID: "GPU-c"},
+	}
+
+	_, err := plugin.selectPreferredDeviceIDsFromAnnotatedDevices(available, nil, desired, len(desired))
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "GPU-c")
+}
+
+func TestGetDevicePluginOptionsEnablesPreferredAllocation(t *testing.T) {
+	plugin := &NvidiaDevicePlugin{}
+
+	options, err := plugin.GetDevicePluginOptions(context.Background(), &kubeletdevicepluginv1beta1.Empty{})
+	require.NoError(t, err)
+	require.True(t, options.GetPreferredAllocationAvailable)
+}
+
+func TestGetPreferredAllocationAlignsWithAnnotatedDevices(t *testing.T) {
+	previousInRequestDevice := device.InRequestDevices[nvidia.NvidiaGPUDevice]
+	device.InRequestDevices[nvidia.NvidiaGPUDevice] = "hami.io/vgpu-devices-to-allocate"
+	defer func() {
+		device.InRequestDevices[nvidia.NvidiaGPUDevice] = previousInRequestDevice
+	}()
+
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "default",
+			Name:      "test-pod",
+			Annotations: map[string]string{
+				"hami.io/vgpu-devices-to-allocate": device.EncodePodSingleDevice(device.PodSingleDevice{
+					{
+						{UUID: "GPU-a", Type: nvidia.NvidiaGPUDevice},
+						{UUID: "GPU-b", Type: nvidia.NvidiaGPUDevice},
+						{UUID: "GPU-c", Type: nvidia.NvidiaGPUDevice},
+						{UUID: "GPU-d", Type: nvidia.NvidiaGPUDevice},
+						{UUID: "GPU-e", Type: nvidia.NvidiaGPUDevice},
+						{UUID: "GPU-f", Type: nvidia.NvidiaGPUDevice},
+						{UUID: "GPU-g", Type: nvidia.NvidiaGPUDevice},
+						{UUID: "GPU-h", Type: nvidia.NvidiaGPUDevice},
+					},
+				}),
+			},
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{{Name: "main"}},
+		},
+	}
+
+	plugin := &NvidiaDevicePlugin{}
+	t.Setenv(util.NodeNameEnvName, "node-a")
+	previousGetPendingPod := getPendingPod
+	getPendingPod = func(context.Context, string) (*corev1.Pod, error) {
+		return pod, nil
+	}
+	defer func() {
+		getPendingPod = previousGetPendingPod
+	}()
+
+	request := &kubeletdevicepluginv1beta1.PreferredAllocationRequest{
+		ContainerRequests: []*kubeletdevicepluginv1beta1.ContainerPreferredAllocationRequest{
+			{
+				AvailableDeviceIDs: []string{
+					"GPU-a-0", "GPU-a-1",
+					"GPU-b-0",
+					"GPU-c-0",
+					"GPU-d-0", "GPU-d-1",
+					"GPU-e-0",
+					"GPU-f-0",
+					"GPU-g-0",
+					"GPU-h-0",
+				},
+				MustIncludeDeviceIDs: []string{"GPU-d-1"},
+				AllocationSize:       8,
+			},
+		},
+	}
+
+	response, err := plugin.GetPreferredAllocation(context.Background(), request)
+	require.NoError(t, err)
+	require.Len(t, response.ContainerResponses, 1)
+	require.ElementsMatch(t, []string{
+		"GPU-a-0",
+		"GPU-b-0",
+		"GPU-c-0",
+		"GPU-d-1",
+		"GPU-e-0",
+		"GPU-f-0",
+		"GPU-g-0",
+		"GPU-h-0",
+	}, response.ContainerResponses[0].DeviceIDs)
 }
 
 func Test_pathGeneration(t *testing.T) {
